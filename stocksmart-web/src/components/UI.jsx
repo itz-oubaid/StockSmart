@@ -41,15 +41,19 @@ export const Card = ({ children, className = '', ...props }) => (
 
 export const Badge = ({ children, variant = 'gray', className = '' }) => {
   const variants = {
-    gray: 'bg-gray-100 text-gray-800',
-    green: 'bg-green-100 text-green-800',
-    red: 'bg-red-100 text-red-800',
-    yellow: 'bg-yellow-100 text-yellow-800',
-    blue: 'bg-blue-100 text-blue-800',
+    gray: 'bg-gray-100 text-gray-800 dark:bg-slate-700 dark:text-slate-300',
+    green: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+    red: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
+    yellow: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
+    blue: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
+    success: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400',
+    error: 'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400',
+    warning: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
+    info: 'bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-400',
   };
   
   return (
-    <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${variants[variant]} ${className}`}>
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${variants[variant]} ${className}`}>
       {children}
     </span>
   );
@@ -157,16 +161,16 @@ export const Modal = ({
 
 export const Alert = ({ variant = 'info', title, message, className = '' }) => {
   const variants = {
-    info: 'bg-blue-50 border-blue-200 text-blue-800',
-    success: 'bg-green-50 border-green-200 text-green-800',
-    warning: 'bg-yellow-50 border-yellow-200 text-yellow-800',
-    error: 'bg-red-50 border-red-200 text-red-800',
+    info: 'bg-sky-50 border-sky-200 text-sky-800 dark:bg-sky-900/10 dark:border-sky-900/30 dark:text-sky-400',
+    success: 'bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-900/10 dark:border-emerald-900/30 dark:text-emerald-400',
+    warning: 'bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-900/10 dark:border-amber-900/30 dark:text-amber-400',
+    error: 'bg-rose-50 border-rose-200 text-rose-800 dark:bg-rose-900/10 dark:border-rose-900/30 dark:text-rose-400',
   };
 
   return (
-    <div className={`border-l-4 p-4 rounded ${variants[variant]} ${className}`}>
+    <div className={`border-l-4 p-4 rounded-xl border ${variants[variant]} ${className}`}>
       {title && <h4 className="font-bold mb-1">{title}</h4>}
-      <p>{message}</p>
+      <p className="text-sm font-medium">{message}</p>
     </div>
   );
 };

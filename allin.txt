@@ -1,0 +1,595 @@
+================================================================================
+  STOCKSMART — COMPLETE PROJECT DOCUMENTATION (allin.txt)
+  Generated reference for files, roles, API, configuration, and how to run
+================================================================================
+
+TABLE OF CONTENTS
+-----------------
+1.  What is StockSmart?
+2.  How to run the project (API URL & configuration)
+3.  Project folder structure
+4.  User roles & permissions (full matrix)
+5.  Demo login accounts
+6.  Frontend routes (pages)
+7.  Frontend files — purpose & main functions
+8.  Backend files — purpose & API endpoints
+9.  Database entities (backend)
+10. Authentication & JWT flow
+11. localStorage keys used by the app
+12. Internationalization (i18n)
+13. Scripts & utilities
+14. Postman / external tools
+
+
+================================================================================
+1. WHAT IS STOCKSMART?
+================================================================================
+
+StockSmart is a multi-tenant inventory / warehouse management platform.
+
+  • Frontend: React 19 + Vite 8 SPA (folder: stocksmart-web/)
+  • Backend:  Symfony 7.4 REST API + Doctrine ORM + MySQL (folder: stocksmart-backend/)
+  • Auth:     JWT (Lexik JWT bundle) — Bearer token on every API call
+  • i18n:     English, French, Spanish (react-i18next)
+
+Each organization is a "Tenant". Users belong to a tenant (except System Admin).
+Roles control which pages and API actions are allowed.
+
+
+================================================================================
+2. HOW TO RUN THE PROJECT (API URL & CONFIGURATION)
+================================================================================
+
+THIS IS THE FILE YOU CONFIGURE TO POINT THE FRONTEND AT THE BACKEND:
+
+  stocksmart-web/.env
+  ───────────────────
+  VITE_API_URL=http://localhost:8001/api
+
+  Example template: stocksmart-web/.env.example
+
+The frontend reads VITE_API_URL in:
+  stocksmart-web/src/services/api.js
+    → const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+
+If .env is missing or wrong, the app falls back to localhost:8000/api.
+
+BACKEND DATABASE & SECRETS:
+
+  stocksmart-backend/.env
+  ───────────────────────
+  DATABASE_URL="mysql://root:@127.0.0.1:3306/stocksmart"
+  JWT keys, APP_SECRET, mailer, etc.
+
+HOW TO START (typical dev setup):
+
+  Terminal 1 — Backend (Symfony PHP built-in server):
+    cd stocksmart-backend
+    php -S localhost:8001 -t public
+
+  Terminal 2 — Frontend (Vite dev server, port 3000):
+    cd stocksmart-web
+    npm install
+    npm run dev
+
+  Open browser: http://localhost:3000
+
+  Make sure VITE_API_URL matches the backend port (8001 in example above).
+
+SEED DATABASE (demo data + users):
+
+  cd stocksmart-backend
+  php seed.php
+
+  Add tenant admin only (without full reseed):
+  php add_tenant_admin.php
+
+CORS: handled by nelmio/cors-bundle on the backend.
+JWT config: stocksmart-backend/config/packages/lexik_jwt_authentication.yaml
+
+
+================================================================================
+3. PROJECT FOLDER STRUCTURE
+================================================================================
+
+StockSmart/
+├── allin.txt                    ← This documentation file
+├── package.json                 ← Root Tailwind/PostCSS dev deps only
+├── .postman/                    ← Postman workspace metadata
+├── postman/                     ← Postman globals
+│
+├── stocksmart-web/              ← REACT FRONTEND
+│   ├── .env                     ← *** API URL HERE (VITE_API_URL) ***
+│   ├── .env.example
+│   ├── package.json
+│   ├── vite.config.js           ← Dev server port 3000
+│   ├── index.html
+│   └── src/
+│       ├── main.jsx             ← App entry point
+│       ├── App.jsx              ← Routes & auth guards
+│       ├── services/api.js      ← *** ALL API CALLS / Axios client ***
+│       ├── context/AuthContext.jsx ← Login, roles, permissions
+│       ├── config/i18n.js       ← Translations EN/FR/ES
+│       ├── hooks/               ← Data-fetching React hooks
+│       ├── components/          ← Reusable UI (Layout, Table, UI, etc.)
+│       ├── pages/               ← Screen components
+│       └── styles/              ← Role-specific CSS
+│
+└── stocksmart-backend/          ← SYMFONY API
+    ├── .env                     ← Database, JWT, secrets
+    ├── composer.json
+    ├── seed.php                 ← Full DB seed
+    ├── add_tenant_admin.php     ← Add tenant admin user
+    ├── public/index.php         ← Web entry (API)
+    ├── config/                  ← Symfony config (security, doctrine, jwt)
+    └── src/
+        ├── Controller/          ← REST API endpoints
+        ├── Entity/              ← Doctrine database models
+        ├── Repository/          ← Database queries
+        ├── Service/             ← Email invitation services
+        └── Security/            ← Login authenticator
+
+
+================================================================================
+4. USER ROLES & PERMISSIONS
+================================================================================
+
+Defined in: stocksmart-web/src/context/AuthContext.jsx → ROLE_PERMISSIONS
+
+Admin Système (System Admin) — scope: global
+  Permissions: manage_tenants, manage_all_users, system_config, supervision
+  Can do everything in the UI (hasPermission always true).
+  Pages: /home/admin (Platform Admin console)
+  Capabilities:
+    • Log in
+    • Create/manage tenants (organizations)
+    • Manage all users globally
+    • Update/delete tenant info
+    • Invite Tenant Admins
+    • Supervise multi-tenant platform
+    • View registered organizations
+
+Admin Tenant (Tenant Admin) — scope: tenant
+  Permissions: manage_users, manage_depots, manage_products, manage_suppliers,
+               manage_brands, view_reports, manage_config
+  Can do everything within their tenant (hasPermission always true).
+  Pages: /home/tenant, /home/depots, /home/products, /home/suppliers, etc.
+  Capabilities:
+    • Log in
+    • Invite users by email
+    • Create users with roles
+    • Manage tenant users
+    • Manage products, depots, suppliers, brands
+
+Manager — scope: tenant
+  Permissions: validate_orders, supervise_stock, view_all_depots,
+               view_reports, select_suppliers
+  Depots: all
+  Pages: /home/approvals (Manager Approvals), /home/dashboard, /home/reports
+  Capabilities:
+    • Log in
+    • View purchase requests from Commercials / Storekeepers
+    • Approve or reject purchase requests
+    • Select supplier from proposals
+    • Monitor global order status
+
+Commercial — scope: tenant
+  Permissions: view_stock, create_orders, follow_orders
+  Depots: none
+  Pages: /home/commercial, /home/products (view), /home/orders
+  Capabilities:
+    • View stock
+    • Create purchase / stock orders
+    • Follow order status
+
+Magasinier — scope: tenant (legacy French role name)
+  Permissions: manage_movements, receive_stock, inventory, scan
+  Depots: assigned only
+  Pages: /home/movements
+
+Storekeeper — scope: tenant
+  Permissions: view_stock, manage_stock_lots, add_stock, remove_stock,
+               perform_movements, create_purchase_requests, register_entries,
+               view_history
+  Depots: assigned only
+  Pages: /home/storekeeper (Stock Management dashboard)
+
+PERMISSION CHECK LOGIC (frontend):
+  • ProtectedRoute     → must be logged in
+  • PermissionRoute    → must have specific permission string
+  • hasPermission()    → Admin Système & Admin Tenant bypass (all true)
+  • canAccessDepot()   → System/Tenant admin & Manager → all depots
+
+SIDEBAR MENU (Layout.jsx) — filtered by requiredPermission:
+  /home              → everyone
+  /home/admin        → manage_tenants
+  /home/tenant       → manage_users
+  /home/dashboard    → view_reports
+  /home/depots       → manage_depots
+  /home/products     → view_stock (also manage_products)
+  /home/commercial   → create_orders
+  /home/orders       → create_orders
+  /home/approvals    → validate_orders  (Manager)
+  /home/storekeeper  → manage_stock_lots
+  /home/movements    → manage_movements
+  /home/suppliers    → manage_suppliers
+  /home/brands       → manage_brands
+  /home/reports      → view_reports
+  /home/settings     → everyone (logged in)
+
+
+================================================================================
+5. DEMO LOGIN ACCOUNTS
+================================================================================
+
+Defined in AuthContext.jsx (DEMO_USERS). Used when API fails and USE_FALLBACK=true.
+
+  Role              Email                          Password
+  ─────────────────────────────────────────────────────────────
+  Admin Système     admin@stocksmart.app           admin123
+  Admin Tenant      tenantadmin@stocksmart.app     tenant123
+  Manager           manager@stocksmart.app         manager123
+  Commercial        commercial@stocksmart.app      commercial123
+  Magasinier        magasinier@stocksmart.app      magasinier123
+  Storekeeper       storekeeper@stocksmart.app     storekeeper123
+
+After login, redirects (Login.jsx):
+  Admin Système  → /home/admin
+  Admin Tenant   → /home/tenant
+  Others         → /home
+
+Demo mode sets localStorage stocksmart_token = "demo-token" and stocksmart_demo = "1".
+Demo sessions do NOT send Bearer token to API; 401 responses won't force logout.
+
+
+================================================================================
+6. FRONTEND ROUTES (App.jsx)
+================================================================================
+
+  /login                    Login / Signup page (public)
+  /home                     Home landing (protected)
+  /home/admin               System Admin console
+  /home/tenant              Tenant Admin console
+  /home/dashboard           KPI dashboard & charts
+  /home/products            Product catalog CRUD
+  /home/depots              Warehouses / depots CRUD
+  /home/orders              Order creation (Commercial)
+  /home/commercial          Commercial dashboard / requests
+  /home/approvals           Manager approvals (approve/reject/supplier)
+  /home/storekeeper         Storekeeper stock dashboard
+  /home/movements           Stock movements
+  /home/suppliers           Suppliers CRUD
+  /home/brands              Brands CRUD
+  /home/settings            Settings (language, currency, webhooks)
+  /home/reports             Reports & automation
+  *                         Redirect to /login
+
+
+================================================================================
+7. FRONTEND FILES — PURPOSE & MAIN FUNCTIONS
+================================================================================
+
+── ENTRY ──────────────────────────────────────────────────────────────────────
+
+main.jsx
+  Role: Bootstrap React app, load CSS + i18n, apply saved dark/light theme.
+  Functions: createRoot().render(<App />)
+
+App.jsx
+  Role: Router shell, auth guards.
+  Components:
+    ProtectedRoute    — redirects to /login if not authenticated
+    PublicRoute       — redirects to /home if already logged in
+    PermissionRoute   — redirects to /home if missing permission
+    AppRoutes         — all Route definitions
+    App               — wraps AuthProvider + BrowserRouter
+
+── API LAYER ──────────────────────────────────────────────────────────────────
+
+services/api.js
+  Role: *** CENTRAL API CLIENT *** — all HTTP calls to Symfony backend.
+  Exports:
+    isDemoSession()     — check if using offline demo token
+    apiClient           — axios instance with interceptors
+    authAPI             — login, signup, logout, me, profile
+    productsAPI         — list, getOne, create, update, delete
+    suppliersAPI        — list, getOne, create, update, delete
+    brandsAPI           — list, getOne, create, update, delete
+    movementsAPI        — list, getOne, create
+    stockAPI            — getStock, addStock, removeStock
+    dashboardAPI        — getStats
+    reportsAPI          — stock, movements, value, predictions reports
+    ordersAPI           — list, getOne, create, update, delete,
+                          getPending, approve, reject, selectSupplier
+    tenantsAPI          — list, getOne, create, update, delete
+    usersAPI            — listAll, listTenant, create, update, delete
+    depotsAPI           — list, create, update, delete
+    adminAPI            — inviteTenantAdmin, inviteUser
+    automationAPI       — getAlerts, triggerN8n, visionUpdate
+  Interceptors:
+    Request:  adds Authorization: Bearer <token> (except demo-token)
+    Response: on 401 (non-login) clears session → redirect /login
+
+── AUTH & STATE ─────────────────────────────────────────────────────────────
+
+context/AuthContext.jsx
+  Role: Global authentication, user/tenant state, RBAC.
+  Constants:
+    ROLE_PERMISSIONS  — map role → permissions
+    DEMO_USERS        — offline demo accounts
+    USE_FALLBACK      — true = allow demo login when API fails
+  Functions:
+    applyLocale()           — sync i18n + localStorage language
+    loginWithDemoUser()     — offline demo session
+    login(email, password)  — API login, fallback to demo
+    signup()                — register new user
+    logout()                — clear session
+    updateProfile()         — update user profile
+    updateTenantSettings()  — locale/currency for tenant
+    hasPermission(perm)     — RBAC check
+    canAccessDepot(id)      — depot-scoped access
+  Hook: useAuth()
+
+── CONFIG ───────────────────────────────────────────────────────────────────
+
+config/i18n.js
+  Role: i18next setup with EN/FR/ES translation keys for all UI strings.
+  Default language: fr (or stocksmart_language from localStorage)
+
+── HOOKS (data fetching) ────────────────────────────────────────────────────
+
+hooks/useApi.js
+  useProducts(filters)       — CRUD products
+  useSuppliers(filters)      — CRUD suppliers
+  useBrands(filters)         — CRUD brands
+  useMovements(filters)      — list/create movements
+  useDashboardStats()        — dashboard KPIs
+  useStockReport()           — stock report data
+  useMovementsReport()       — movements report
+  useValueReport()           — inventory value report
+  usePredictions()           — AI forecast data
+  useTenant(id)              — tenant settings fetch/update
+  useOrders(filters)         — orders CRUD + manager actions
+  useAutomationAlerts()      — n8n/automation alerts
+  useTriggerAutomation()     — trigger n8n webhook
+  useVisionAnalysis()        — AI shelf image analysis
+
+hooks/useAdmin.js
+  useTenantsAdmin()          — System admin: tenants CRUD
+  useUsersAdmin()            — System admin: all users + invite tenant admin
+
+hooks/useTenantAdmin.js
+  useTenantUsers()           — Tenant admin: team users CRUD + invite
+  useDepots()                — Tenant depots CRUD
+
+hooks/useLanguage.js
+  useLanguage()              — language switcher state + setLanguage()
+
+── COMPONENTS ───────────────────────────────────────────────────────────────
+
+components/Layout.jsx
+  Role: Main app shell — sidebar, search, dark mode, logout, Outlet for pages.
+  State: sidebarOpen, darkMode, searchTerm
+  Functions: toggleSidebar(), handleSearch(), handleLogout()
+
+components/UI.jsx
+  Role: Shared design system components.
+  Exports: Button, Card, Badge, Input, Select, Textarea, Modal, Alert
+
+components/Table.jsx
+  Role: Sortable data table + Pagination component.
+
+components/LanguageSwitcher.jsx
+  Role: Language dropdown (used in Settings page).
+  Variants: inline, auth (login page)
+
+components/VisionScanner.jsx
+  Role: Camera/upload UI for AI shelf analysis (Reports integration).
+
+── PAGES ────────────────────────────────────────────────────────────────────
+
+pages/Login.jsx
+  Role: Login & signup forms, language switcher, role-based redirect.
+
+pages/Home.jsx
+  Role: Marketing landing; auto-redirects System/Tenant admin to their consoles.
+
+pages/SystemAdmin.jsx
+  Role: Platform admin — tenants, global users, role matrix, invites.
+
+pages/TenantAdmin.jsx
+  Role: Tenant admin — team management, invites, quick links to products/suppliers/depots.
+
+pages/ManagerApprovals.jsx
+  Role: Manager — view pending orders, approve, reject, select supplier, filter by status.
+  Uses: ordersAPI.list, approve, reject, selectSupplier
+
+pages/CommercialDashboard.jsx
+  Role: Commercial — create/view purchase requests, follow orders.
+
+pages/StorekeeperDashboard.jsx
+  Role: Storekeeper — stock lots, entries, movements, purchase requests.
+
+pages/Dashboard.jsx
+  Role: KPI cards, charts (Recharts), recent activity.
+
+pages/Products.jsx
+  Role: Product list, filters, add/edit/delete, low stock stats.
+
+pages/Orders.jsx
+  Role: Create orders with line items (Commercial).
+
+pages/Movements.jsx
+  Role: Stock in/out/transfer movements.
+
+pages/Suppliers.jsx
+  Role: Supplier CRUD, ratings, contacts.
+
+pages/Brands.jsx
+  Role: Brand CRUD.
+
+pages/Depots.jsx
+  Role: Warehouse/depot CRUD (uses Site entity via /api/depots).
+
+pages/Reports.jsx
+  Role: Reports tabs, charts, n8n automation, VisionScanner.
+
+pages/Settings.jsx
+  Role: Language, currency, webhook URL, password form.
+
+pages/index.css
+  Role: Global styles, auth page, home page, layout utilities.
+
+styles/ManagerApprovals.css, CommercialDashboard.css, StorekeeperDashboard.css
+  Role: Role-specific page styling.
+
+
+================================================================================
+8. BACKEND FILES — PURPOSE & API ENDPOINTS
+================================================================================
+
+Base URL: {VITE_API_URL} e.g. http://localhost:8001/api
+Auth: Authorization: Bearer <JWT> on protected routes (except /login, /register)
+
+── CONTROLLERS ──────────────────────────────────────────────────────────────
+
+LoginController.php          /api/login POST, /api/auth/me GET
+RegisterController.php       /api/register, /api/auth/register POST
+UserController.php           /api/users GET (profile), PUT (profile)
+                             /api/users/all GET (system admin)
+                             /api/users/tenant GET (tenant admin)
+                             /api/users/create POST
+                             /api/users/{id} PUT, DELETE
+TenantController.php         /api/tenants GET, POST
+                             /api/tenants/{id} GET, PUT, DELETE
+ProductController.php        /api/products GET, POST, PUT, DELETE
+SupplierController.php       /api/suppliers GET, POST, PUT, DELETE
+BrandController.php          /api/brands GET, POST, PUT, DELETE
+StockMovementController.php  /api/movements GET, POST
+StockController.php          /api/stock, /api/stock/add, /api/stock/remove
+OrderController.php          /api/orders GET, POST, DELETE
+                             /api/orders/pending GET
+                             /api/orders/{id}/approve PATCH
+                             /api/orders/{id}/reject PATCH
+                             /api/orders/{id}/select-supplier POST
+DashboardController.php      /api/dashboard/stats GET
+ReportController.php         /api/reports/stock, /movements, /value, /predictions
+DepotController.php          /api/depots GET, POST, PUT, DELETE (Site entity)
+AutomationController.php     /api/automation/alerts, trigger-n8n, vision-update
+InviteRegistrationController.php   /api/invite-admin POST (invite tenant admin)
+InviteUserRegistrationController.php /api/invite-user POST (invite tenant user)
+
+── SERVICES ─────────────────────────────────────────────────────────────────
+
+InvitationMailer.php         — Email template for tenant admin invites
+InvitationMailerUser.php     — Email template for user invites
+
+── SECURITY ─────────────────────────────────────────────────────────────────
+
+config/packages/security.yaml
+  • /api/login, /api/register → PUBLIC_ACCESS
+  • All other /api/* → JWT required (IS_AUTHENTICATED_FULLY)
+LoginAuthenticator.php       — Symfony security authenticator
+
+── UTILITIES (backend root) ─────────────────────────────────────────────────
+
+seed.php                     — Drop/recreate schema + demo tenant, users, products, etc.
+add_tenant_admin.php         — Add tenantadmin@stocksmart.app without full reseed
+generate_jwt_keys.php        — Generate JWT public/private keys
+
+
+================================================================================
+9. DATABASE ENTITIES (backend/src/Entity/)
+================================================================================
+
+Tenant          — Organization (name, slug, plan, status, locale, currency, webhook)
+User            — email, password, name, role, status, depots[], tenant
+Product         — SKU, name, prices, quantities, category, tenant
+ProductLot      — Lot/serial tracking for products
+Brand           — Brand name, country, type, tenant
+Supplier        — SIRET, contacts, reliability score, tenant
+StockMovement   — In/out/transfer movements, tenant
+StockOrder      — Purchase orders (status, items JSON, created_by, approved_by)
+SupplierOrder   — Link orders to suppliers
+Stock           — Stock levels
+Site            — Warehouse/depot locations (name, address, type) — exposed as /api/depots
+Depot           — Depot linked to Site (entity exists; API uses Site)
+Invitation      — User invitation records
+
+
+================================================================================
+10. AUTHENTICATION & JWT FLOW
+================================================================================
+
+1. User submits email/password on Login page.
+2. Frontend POST /api/login → backend validates, returns { user, token, tenant }.
+3. Frontend stores stocksmart_token (JWT) in localStorage.
+4. Every API call: Authorization: Bearer <JWT> (api.js interceptor).
+5. On 401 (expired/invalid token): clear storage, redirect to /login.
+6. Demo fallback: if API fails and credentials match DEMO_USERS, use demo-token.
+
+JWT config: stocksmart-backend/config/packages/lexik_jwt_authentication.yaml
+  token_ttl: 68400 seconds (~19 hours)
+
+
+================================================================================
+11. localStorage KEYS
+================================================================================
+
+  stocksmart_token      — JWT or "demo-token"
+  stocksmart_demo       — "1" when in demo/offline mode
+  stocksmart_user       — JSON serialized user object
+  stocksmart_tenant     — JSON serialized tenant object
+  stocksmart_language   — en | fr | es
+  stocksmart_currency   — EUR | USD
+  stocksmart_theme      — dark | light
+  stocksmart-sidebar    — open | collapsed
+
+
+================================================================================
+12. INTERNATIONALIZATION (i18n)
+================================================================================
+
+  Config:   stocksmart-web/src/config/i18n.js
+  Hook:     useTranslation() from react-i18next
+  Switch:   Settings page → Language dropdown (LanguageSwitcher)
+  Languages: English (en), Français (fr), Español (es)
+  Keys:     nav.*, auth.*, products.*, orders.*, admin.*, tenantAdmin.*, etc.
+
+
+================================================================================
+13. NPM SCRIPTS (stocksmart-web)
+================================================================================
+
+  npm run dev      — Start Vite dev server (http://localhost:3000)
+  npm run build    — Production build → dist/
+  npm run preview  — Preview production build
+  npm run lint     — ESLint
+
+
+================================================================================
+14. POSTMAN
+================================================================================
+
+  .postman/resources.yaml   — Postman workspace ID
+  postman/globals/          — Empty globals template
+
+Use Postman to test API endpoints with Bearer token from POST /api/login.
+
+
+================================================================================
+QUICK REFERENCE — WHERE TO CHANGE WHAT
+================================================================================
+
+  Change API URL          → stocksmart-web/.env  (VITE_API_URL)
+  Change database         → stocksmart-backend/.env  (DATABASE_URL)
+  Add/modify API calls    → stocksmart-web/src/services/api.js
+  Add/modify permissions  → stocksmart-web/src/context/AuthContext.jsx
+  Add new page/route      → stocksmart-web/src/pages/ + App.jsx + Layout.jsx
+  Add new API endpoint    → stocksmart-backend/src/Controller/
+  Add translations        → stocksmart-web/src/config/i18n.js
+  Seed demo data          → stocksmart-backend/seed.php
+
+================================================================================
+END OF allin.txt
+================================================================================

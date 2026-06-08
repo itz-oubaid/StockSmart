@@ -1,7 +1,20 @@
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import { useAuth } from "../context/AuthContext";
 
 export const Home = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
+  const { user, hasPermission } = useAuth();
+
+  useEffect(() => {
+    if (user?.role === "Admin Système" && hasPermission("manage_tenants")) {
+      navigate("/home/admin", { replace: true });
+    } else if (user?.role === "Admin Tenant" && hasPermission("manage_users")) {
+      navigate("/home/tenant", { replace: true });
+    }
+  }, [user, hasPermission, navigate]);
 
   const handleGetStarted = () => {
     navigate("/home/dashboard");
@@ -13,52 +26,46 @@ export const Home = () => {
 
   return (
     <div className="home-page-container">
-      {/* Hero Section */}
       <div className="home-hero">
         <div className="hero-content">
-          <h1>StockSmart</h1>
-          <p className="hero-subtitle">Your Perfect Way to Manage Inventory</p>
-          <p className="hero-description">
-            A comprehensive inventory management solution designed to streamline your warehouse operations, 
-            reduce stockouts, and optimize your supply chain efficiency.
-          </p>
-          <button className="hero-cta" onClick={handleGetStarted}>Get Started</button>
+          <h1>{t('home.hero_title')}</h1>
+          <p className="hero-subtitle">{t('home.hero_subtitle')}</p>
+          <p className="hero-description">{t('home.hero_desc')}</p>
+          <button className="hero-cta" onClick={handleGetStarted}>{t('home.get_started')}</button>
         </div>
         <div className="hero-image">
           <img src="/stock.jpeg" alt="stocksmart inventory management" />
         </div>
       </div>
 
-      {/* Features Section */}
       <div className="home-section">
-        <h2>Why Choose StockSmart?</h2>
+        <h2>{t('home.why_choose')}</h2>
         <div className="features-grid">
           <div className="feature-card">
             <div className="feature-icon">📊</div>
-            <h3>Real-Time Analytics</h3>
-            <p>Monitor your inventory levels, movements, and stock trends with instant, accurate data.</p>
+            <h3>{t('home.feature_analytics')}</h3>
+            <p>{t('home.feature_analytics_desc')}</p>
           </div>
           <div className="feature-card">
             <div className="feature-icon">🔒</div>
-            <h3>Secure & Reliable</h3>
-            <p>Enterprise-grade security with encrypted data storage and regular backups.</p>
+            <h3>{t('home.feature_secure')}</h3>
+            <p>{t('home.feature_secure_desc')}</p>
           </div>
           <div className="feature-card">
             <div className="feature-icon">⚡</div>
-            <h3>Fast & Efficient</h3>
-            <p>Lightning-quick search, filtering, and reporting to save you valuable time.</p>
+            <h3>{t('home.feature_fast')}</h3>
+            <p>{t('home.feature_fast_desc')}</p>
           </div>
           <div className="feature-card">
             <div className="feature-icon">📱</div>
-            <h3>Mobile Friendly</h3>
-            <p>Access your inventory data from any device, anywhere, anytime.</p>
+            <h3>{t('home.feature_mobile')}</h3>
+            <p>{t('home.feature_mobile_desc')}</p>
           </div>
         </div>
       </div>
 
-      {/* Trusted By Section */}
       <div className="home-section trusted-section">
-        <h2>Trusted By Leading Companies</h2>
+        <h2>{t('home.trusted_by')}</h2>
         <div className="trusted-logos">
           <div className="trusted-logo-item">
             <img src="/company1.png" alt="company1" />
@@ -75,30 +82,28 @@ export const Home = () => {
         </div>
       </div>
 
-      {/* Key Features Section */}
       <div className="home-section">
-        <h2>Key Features</h2>
+        <h2>{t('home.key_features')}</h2>
         <div className="benefits-grid">
           <div className="benefit-card">
-            <h3>📈 Sell More</h3>
-            <p>Optimize your inventory levels to ensure you never miss a sale. Keep best-sellers in stock while reducing overstock of slow-moving items.</p>
+            <h3>{t('home.sell_more')}</h3>
+            <p>{t('home.sell_more_desc')}</p>
           </div>
           <div className="benefit-card">
-            <h3>🔐 Safe & Secure</h3>
-            <p>Your data is protected with industry-leading security standards. Multi-factor authentication, encrypted connections, and regular security audits.</p>
+            <h3>{t('home.safe_secure')}</h3>
+            <p>{t('home.safe_secure_desc')}</p>
           </div>
           <div className="benefit-card">
-            <h3>🚀 Easy Access</h3>
-            <p>Intuitive interface requires minimal training. Get your team up and running in minutes with our user-friendly dashboard and real-time notifications.</p>
+            <h3>{t('home.easy_access')}</h3>
+            <p>{t('home.easy_access_desc')}</p>
           </div>
         </div>
       </div>
 
-      {/* CTA Section */}
       <div className="home-cta-section">
-        <h2>Ready to Streamline Your Inventory?</h2>
-        <p>Join hundreds of businesses already using StockSmart to manage their inventory efficiently.</p>
-        <button className="cta-button" onClick={handleStartTrial}>Start Your Free Trial</button>
+        <h2>{t('home.cta_title')}</h2>
+        <p>{t('home.cta_desc')}</p>
+        <button className="cta-button" onClick={handleStartTrial}>{t('home.start_trial')}</button>
       </div>
     </div>
   );

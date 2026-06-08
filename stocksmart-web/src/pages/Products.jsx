@@ -1,11 +1,14 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { FiEdit2, FiEye, FiPlus, FiTrash2 } from "react-icons/fi";
 import { Pagination, Table } from "../components/Table";
 import { Badge, Button, Card, Input, Modal, Select } from "../components/UI";
 import { useAuth } from "../context/AuthContext";
+import { useProducts } from "../hooks/useApi";
 
 export const Products = () => {
-  const { hasPermission } = useAuth();
+  const { hasPermission, tenant } = useAuth();
+  const currency = tenant?.currency || localStorage.getItem('stocksmart_currency') || 'EUR';
+  const symbol = currency === 'USD' ? '$' : '€';
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
@@ -13,99 +16,119 @@ export const Products = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState("");
 
-  const mockProducts = [
-    {
-      id: 1,
-      sku: "SKU-001",
-      name: "Laptop Pro",
-      category: "Electronics",
-      unit: "pcs",
-      quantity: 45,
-      price_sell: 1200,
-      status: "In Stock",
-    },
-    {
-      id: 2,
-      sku: "SKU-002",
-      name: "Wireless Mouse",
-      category: "Accessories",
-      unit: "pcs",
-      quantity: 8,
-      price_sell: 25,
-      status: "Low Stock",
-    },
-    {
-      id: 3,
-      sku: "SKU-003",
-      name: "USB-C Cable",
-      category: "Cables",
-      unit: "pcs",
-      quantity: 120,
-      price_sell: 15,
-      status: "In Stock",
-    },
-    {
-      id: 4,
-      sku: "SKU-004",
-      name: "Monitor 27\"",
-      category: "Electronics",
-      unit: "pcs",
-      quantity: 3,
-      price_sell: 350,
-      status: "Low Stock",
-    },
-    {
-      id: 5,
-      sku: "SKU-005",
-      name: "Keyboard Mechanical",
-      category: "Accessories",
-      unit: "pcs",
-      quantity: 0,
-      price_sell: 120,
-      status: "Out of Stock",
-    },
-  ];
+  // Form state for adding product
+  const [newProduct, setNewProduct] = useState({
+    name: "",
+    sku: "",
+    category: "Electronics",
+    price_buy: "",
+    price_sell: "",
+    quantity: "",
+    min_qty: "",
+    max_qty: "",
+  });
+
+  // Fetch products from API
+  const { products, loading, error, createProduct, deleteProduct } = useProducts();
 
   const itemsPerPage = 10;
-  const totalProducts = mockProducts.length;
-  const lowStockCount = mockProducts.filter(p => p.status === "Low Stock").length;
-  const outOfStockCount = mockProducts.filter(p => p.status === "Out of Stock").length;
+  
+  // Calculate stats from fetched products
+  const totalProducts = products.length;
+  const lowStockCount = products.filter(p => p.quantity <= 10 && p.quantity > 0).length;
+  const outOfStockCount = products.filter(p => p.quantity === 0).length;
 
-  const filteredProducts = mockProducts.filter((product) => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||  product.sku.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = !filterCategory || product.category === filterCategory;
-    const matchesStatus = !filterStatus || product.status === filterStatus;
+  // Client-side filtering
+  const filteredProducts = useMemo(() => {
+    return products.filter((product) => {
+      const matchesSearch = 
+        product.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        product.sku?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory = !filterCategory || product.category === filterCategory;
+      
+      let matchesStatus = true;
+      if (filterStatus === "In Stock") matchesStatus = product.quantity > 10;
+      else if (filterStatus === "Low Stock") matchesStatus = product.quantity > 0 && product.quantity <= 10;
+      else if (filterStatus === "Out of Stock") matchesStatus = product.quantity === 0;
 
-    return matchesSearch && matchesCategory && matchesStatus;
-  });
+      return matchesSearch && matchesCategory && matchesStatus;
+    });
+  }, [products, searchTerm, filterCategory, filterStatus]);
 
   const paginatedProducts = filteredProducts.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
 
+  const handleAddProduct = async () => {
+    if (!newProduct.name || !newProduct.sku) {
+      setFormError("Product name and SKU are required");
+      return;
+    }
+
+    setSaving(true);
+    setFormError("");
+    
+    const result = await createProduct({
+      name: newProduct.name,
+      sku: newProduct.sku,
+      category: newProduct.category,
+      price_buy: parseFloat(newProduct.price_buy) || 0,
+      price_sell: parseFloat(newProduct.price_sell) || 0,
+      quantity: parseInt(newProduct.quantity) || 0,
+      min_qty: parseInt(newProduct.min_qty) || 0,
+      max_qty: parseInt(newProduct.max_qty) || 1000,
+    });
+
+    setSaving(false);
+
+    if (result.success) {
+      setShowAddForm(false);
+      setNewProduct({ name: "", sku: "", category: "Electronics", price_buy: "", price_sell: "", quantity: "", min_qty: "", max_qty: "" });
+    } else {
+      setFormError(result.error || "Failed to create product");
+    }
+  };
+
+  const handleDeleteProduct = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this product?")) return;
+    const result = await deleteProduct(id);
+    if (!result.success) {
+      alert(result.error || "Failed to delete product");
+    }
+  };
+
   const columns = [
     { key: "sku", label: "SKU", sortable: true },
     { key: "name", label: "Product Name", sortable: true },
     { key: "category", label: "Category", sortable: true },
-    { key: "quantity", label: `Quantity (${mockProducts[0]?.unit})`, sortable: true },
+    { key: "quantity", label: "Quantity", sortable: true },
     {
       key: "price_sell",
       label: "Price",
       sortable: true,
-      render: (val) => `€${val}`,
+      render: (val) => `${symbol}${val || 0}`,
     },
     {
       key: "status",
       label: "Status",
-      render: (val) => {
-        const variants = {
-          "In Stock": "green",
-          "Low Stock": "yellow",
-          "Out of Stock": "red",
-        };
-        return <Badge variant={variants[val] || "gray"}>{val}</Badge>;
+      render: (_, row) => {
+        const quantity = row.quantity;
+        let status = "In Stock";
+        let variant = "green";
+        
+        if (quantity === 0) {
+          status = "Out of Stock";
+          variant = "red";
+        } else if (quantity <= 10) {
+          status = "Low Stock";
+          variant = "yellow";
+        }
+        
+        return <Badge variant={variant}>{status}</Badge>;
       },
     },
     {
@@ -128,7 +151,11 @@ export const Products = () => {
               <button className="text-gray-600 hover:text-gray-800 text-lg" title="Edit">
                 <FiEdit2 />
               </button>
-              <button className="text-red-600 hover:text-red-800 text-lg" title="Delete">
+              <button 
+                onClick={() => handleDeleteProduct(row.id)}
+                className="text-red-600 hover:text-red-800 text-lg" 
+                title="Delete"
+              >
                 <FiTrash2 />
               </button>
             </>
@@ -149,23 +176,29 @@ export const Products = () => {
         )}
       </div>
 
-      {}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+          {error}
+        </div>
+      )}
+
+      {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <h3 className="text-sm font-medium text-gray-600">Total Products</h3>
-          <p className="text-2xl font-bold mt-2">{totalProducts}</p>
+          <p className="text-2xl font-bold mt-2">{loading ? "-" : totalProducts}</p>
         </Card>
         <Card>
           <h3 className="text-sm font-medium text-gray-600">Low Stock Items</h3>
-          <p className="text-2xl font-bold text-yellow-600 mt-2">{lowStockCount}</p>
+          <p className="text-2xl font-bold text-yellow-600 mt-2">{loading ? "-" : lowStockCount}</p>
         </Card>
         <Card>
           <h3 className="text-sm font-medium text-gray-600">Out of Stock</h3>
-          <p className="text-2xl font-bold text-red-600 mt-2">{outOfStockCount}</p>
+          <p className="text-2xl font-bold text-red-600 mt-2">{loading ? "-" : outOfStockCount}</p>
         </Card>
       </div>
 
-      {}
+      {/* Filters */}
       <Card>
         <h3 className="font-semibold mb-4">Filter</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -207,21 +240,28 @@ export const Products = () => {
           />
         </div>
       </Card>
-        {}
+
+      {/* Table */}
       <Card>
-        <Table
-          columns={columns}
-          data={paginatedProducts}
-          emptyMessage="No products found"
-        />
-        <Pagination
-          currentPage={currentPage}
-          totalPages={Math.ceil(filteredProducts.length / itemsPerPage)}
-          onPageChange={setCurrentPage}
-        />
+        {loading ? (
+          <div className="text-center py-8">Loading products...</div>
+        ) : (
+          <>
+            <Table
+              columns={columns}
+              data={paginatedProducts}
+              emptyMessage="No products found"
+            />
+            <Pagination
+              currentPage={currentPage}
+              totalPages={Math.ceil(filteredProducts.length / itemsPerPage)}
+              onPageChange={setCurrentPage}
+            />
+          </>
+        )}
       </Card>
 
-      {}
+      {/* Product Details Modal */}
       <Modal
         open={showDetails}
         onClose={() => {
@@ -247,22 +287,21 @@ export const Products = () => {
                 <p className="text-lg font-semibold">{selectedProduct.quantity}</p>
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-600">Status</label>
-                <p className="text-lg font-semibold">
-                  <Badge variant={selectedProduct.status === "In Stock" ? "green" : selectedProduct.status === "Low Stock" ? "yellow" : "red"}>
-                    {selectedProduct.status}
-                  </Badge>
-                </p>
+                <label className="text-sm font-medium text-gray-600">Price</label>
+                <p className="text-lg font-semibold">{symbol}{selectedProduct.price_sell}</p>
               </div>
             </div>
           </div>
         )}
       </Modal>
 
-      {}
+      {/* Add Product Modal */}
       <Modal
         open={showAddForm}
-        onClose={() => setShowAddForm(false)}
+        onClose={() => {
+          setShowAddForm(false);
+          setFormError("");
+        }}
         title="Add Product"
         className="w-full max-w-md"
         footer={
@@ -270,23 +309,65 @@ export const Products = () => {
             <Button variant="secondary" onClick={() => setShowAddForm(false)}>
               Cancel
             </Button>
-            <Button onClick={() => setShowAddForm(false)}>
-              Save
+            <Button onClick={handleAddProduct} disabled={saving}>
+              {saving ? "Saving..." : "Save"}
             </Button>
           </>
         }
       >
         <div className="space-y-4">
-          <Input label="Product Name" placeholder="Enter product name" required />
-          <Input label="SKU" placeholder="Enter SKU" required />
+          {formError && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded text-sm">
+              {formError}
+            </div>
+          )}
+          <Input 
+            label="Product Name" 
+            placeholder="Enter product name" 
+            required 
+            value={newProduct.name}
+            onChange={(e) => setNewProduct(prev => ({ ...prev, name: e.target.value }))}
+          />
+          <Input 
+            label="SKU" 
+            placeholder="Enter SKU" 
+            required 
+            value={newProduct.sku}
+            onChange={(e) => setNewProduct(prev => ({ ...prev, sku: e.target.value }))}
+          />
           <Select
             label="Category"
+            value={newProduct.category}
+            onChange={(e) => setNewProduct(prev => ({ ...prev, category: e.target.value }))}
             options={[
               { value: "Electronics", label: "Electronics" },
               { value: "Accessories", label: "Accessories" },
               { value: "Cables", label: "Cables" },
             ]}
             required
+          />
+          <div className="grid grid-cols-2 gap-4">
+            <Input 
+              label={`Buy Price (${symbol})`} 
+              type="number" 
+              placeholder="0" 
+              value={newProduct.price_buy}
+              onChange={(e) => setNewProduct(prev => ({ ...prev, price_buy: e.target.value }))}
+            />
+            <Input 
+              label={`Sell Price (${symbol})`} 
+              type="number" 
+              placeholder="0" 
+              value={newProduct.price_sell}
+              onChange={(e) => setNewProduct(prev => ({ ...prev, price_sell: e.target.value }))}
+            />
+          </div>
+          <Input 
+            label="Initial Quantity" 
+            type="number" 
+            placeholder="0" 
+            value={newProduct.quantity}
+            onChange={(e) => setNewProduct(prev => ({ ...prev, quantity: e.target.value }))}
           />
         </div>
       </Modal>

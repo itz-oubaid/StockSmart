@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { FiEdit2, FiEye, FiPlus, FiTrash2 } from "react-icons/fi";
 import { Pagination, Table } from "../components/Table";
 import { Badge, Button, Card, Input, Modal, Select } from "../components/UI";
 import { useAuth } from "../context/AuthContext";
+import { useSuppliers } from "../hooks/useApi";
 
 export const Suppliers = () => {
   const { hasPermission } = useAuth();
@@ -12,102 +13,89 @@ export const Suppliers = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState("");
 
-  const mockSuppliers = [
-    {
-      id: 1,
-      name: "TechDirect Solutions",
-      siret: "12345678901234",
-      sector: "Electronics Wholesale",
-      status: "active",
-      contacts: [
-        { name: "Jean Martin", phone: "+33123456789", email: "jean.martin@techdirect.com" }
-      ],
-      address_hq: "123 Business Park, Paris, France",
-      address_delivery: "456 Logistics Zone, Lyon, France",
-      payment_terms: "30 days",
-      avg_delivery_days: 5,
-      reliability_score: 9.2,
-      total_orders: 45,
-      on_time_delivery: "96%",
-      conformity_rate: "98%",
-    },
-    {
-      id: 2,
-      name: "Global Parts Interactive",
-      siret: "98765432109876",
-      sector: "Components & Accessories",
-      status: "active",
-      contacts: [
-        { name: "Marie Dubois", phone: "+33987654321", email: "marie.d@globalparts.com" }
-      ],
-      address_hq: "789 Industrial Ave, Marseille, France",
-      address_delivery: "789 Industrial Ave, Marseille, France",
-      payment_terms: "45 days",
-      avg_delivery_days: 7,
-      reliability_score: 8.5,
-      total_orders: 32,
-      on_time_delivery: "92%",
-      conformity_rate: "95%",
-    },
-    {
-      id: 3,
-      name: "Premium IT Equipment",
-      siret: "55555555555555",
-      sector: "Computer Hardware",
-      status: "inactive",
-      contacts: [
-        { name: "Pierre Leclerc", phone: "+33555555555", email: "pierre@premiumit.com" }
-      ],
-      address_hq: "999 Tech Street, Toulouse, France",
-      address_delivery: "999 Tech Street, Toulouse, France",
-      payment_terms: "60 days",
-      avg_delivery_days: 10,
-      reliability_score: 7.8,
-      total_orders: 15,
-      on_time_delivery: "87%",
-      conformity_rate: "92%",
-    },
-    {
-      id: 4,
-      name: "Eurotech Suppliers",
-      siret: "44444444444444",
-      sector: "Networking & Cables",
-      status: "active",
-      contacts: [
-        { name: "Sophie Moreau", phone: "+33444444444", email: "sophie@eurotech.fr" }
-      ],
-      address_hq: "111 Supply Way, Bordeaux, France",
-      address_delivery: "111 Supply Way, Bordeaux, France",
-      payment_terms: "Net 15",
-      avg_delivery_days: 3,
-      reliability_score: 9.5,
-      total_orders: 78,
-      on_time_delivery: "99%",
-      conformity_rate: "99%",
-    },
-  ];
+  // Form state
+  const [newSupplier, setNewSupplier] = useState({
+    name: "",
+    siret: "",
+    sector: "",
+    email: "",
+    phone: "",
+    contact_name: "",
+  });
+
+  const { suppliers, loading, error, createSupplier, deleteSupplier } = useSuppliers();
 
   const itemsPerPage = 10;
-  const totalSuppliers = mockSuppliers.length;
-  const activeSuppliers = mockSuppliers.filter(s => s.status === "active").length;
-  const averageScore = (mockSuppliers.reduce((sum, s) => sum + s.reliability_score, 0) / mockSuppliers.length).toFixed(1);
+  const totalSuppliers = suppliers.length;
+  const activeSuppliers = suppliers.filter(s => s.status === "active").length;
+  const averageScore = suppliers.length > 0 
+    ? (suppliers.reduce((sum, s) => sum + (parseFloat(s.reliability_score) || 0), 0) / suppliers.length).toFixed(1)
+    : "0";
 
-  // Filter suppliers
-  const filteredSuppliers = mockSuppliers.filter((supplier) => {
-    const matchesSearch = 
-      supplier.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      supplier.siret.includes(searchTerm) ||
-      supplier.contacts[0]?.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = !filterStatus || supplier.status === filterStatus;
+  // Client-side filtering
+  const filteredSuppliers = useMemo(() => {
+    return suppliers.filter((supplier) => {
+      const matchesSearch = 
+        supplier.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        supplier.siret?.includes(searchTerm) ||
+        supplier.contacts?.[0]?.email?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = !filterStatus || supplier.status === filterStatus;
 
-    return matchesSearch && matchesStatus;
-  });
+      return matchesSearch && matchesStatus;
+    });
+  }, [suppliers, searchTerm, filterStatus]);
 
   const paginatedSuppliers = filteredSuppliers.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
+
+  const handleAddSupplier = async () => {
+    if (!newSupplier.name) {
+      setFormError("Supplier name is required");
+      return;
+    }
+
+    setSaving(true);
+    setFormError("");
+
+    const contacts = [];
+    if (newSupplier.contact_name || newSupplier.email || newSupplier.phone) {
+      contacts.push({
+        name: newSupplier.contact_name || '',
+        email: newSupplier.email || '',
+        phone: newSupplier.phone || '',
+      });
+    }
+
+    const result = await createSupplier({
+      name: newSupplier.name,
+      siret: newSupplier.siret,
+      sector: newSupplier.sector,
+      contacts: contacts,
+      status: 'active',
+    });
+
+    setSaving(false);
+
+    if (result.success) {
+      setShowAddForm(false);
+      setNewSupplier({ name: "", siret: "", sector: "", email: "", phone: "", contact_name: "" });
+    } else {
+      setFormError(result.error || "Failed to create supplier");
+    }
+  };
+
+  const handleDeleteSupplier = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this supplier?")) return;
+    const result = await deleteSupplier(id);
+    if (!result.success) {
+      alert(result.error || "Failed to delete supplier");
+    }
+  };
 
   const columns = [
     { key: "name", label: "Supplier Name", sortable: true },
@@ -157,7 +145,11 @@ export const Suppliers = () => {
               <button className="text-gray-600 hover:text-gray-800 text-lg" title="Edit">
                 <FiEdit2 />
               </button>
-              <button className="text-red-600 hover:text-red-800 text-lg" title="Delete">
+              <button 
+                onClick={() => handleDeleteSupplier(row.id)}
+                className="text-red-600 hover:text-red-800 text-lg" 
+                title="Delete"
+              >
                 <FiTrash2 />
               </button>
             </>
@@ -178,19 +170,25 @@ export const Suppliers = () => {
         )}
       </div>
 
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+          {error}
+        </div>
+      )}
+
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <h3 className="text-sm font-medium text-gray-600">Total Suppliers</h3>
-          <p className="text-2xl font-bold mt-2">{totalSuppliers}</p>
+          <p className="text-2xl font-bold mt-2">{loading ? "-" : totalSuppliers}</p>
         </Card>
         <Card>
           <h3 className="text-sm font-medium text-gray-600">Active Suppliers</h3>
-          <p className="text-2xl font-bold text-green-600 mt-2">{activeSuppliers}</p>
+          <p className="text-2xl font-bold text-green-600 mt-2">{loading ? "-" : activeSuppliers}</p>
         </Card>
         <Card>
           <h3 className="text-sm font-medium text-gray-600">Average Rating</h3>
-          <p className="text-2xl font-bold text-blue-600 mt-2">{averageScore}/10</p>
+          <p className="text-2xl font-bold text-blue-600 mt-2">{loading ? "-" : averageScore}/10</p>
         </Card>
       </div>
 
@@ -200,7 +198,7 @@ export const Suppliers = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Input
             type="search"
-            placeholder="Search"
+            placeholder="Search by name, SIRET, or email..."
             value={searchTerm}
             onChange={(e) => {
               setSearchTerm(e.target.value);
@@ -224,19 +222,25 @@ export const Suppliers = () => {
 
       {/* Suppliers Table */}
       <Card>
-        <Table
-          columns={columns}
-          data={paginatedSuppliers}
-          emptyMessage="No suppliers found"
-        />
-        <Pagination
-          currentPage={currentPage}
-          totalPages={Math.ceil(filteredSuppliers.length / itemsPerPage)}
-          onPageChange={setCurrentPage}
-        />
+        {loading ? (
+          <div className="text-center py-8">Loading suppliers...</div>
+        ) : (
+          <>
+            <Table
+              columns={columns}
+              data={paginatedSuppliers}
+              emptyMessage="No suppliers found"
+            />
+            <Pagination
+              currentPage={currentPage}
+              totalPages={Math.ceil(filteredSuppliers.length / itemsPerPage)}
+              onPageChange={setCurrentPage}
+            />
+          </>
+        )}
       </Card>
 
-      {/* Supplier Details Modal */}
+      {/* Supplier Details Modal*/}
       <Modal
         open={showDetails}
         onClose={() => {
@@ -269,38 +273,18 @@ export const Suppliers = () => {
               </div>
             </div>
 
-            <div className="border-t pt-4">
-              <h4 className="font-semibold mb-2">Contact Information</h4>
-              {selectedSupplier.contacts.map((contact, idx) => (
-                <div key={idx} className="text-sm space-y-1">
-                  <p><span className="font-medium">Name:</span> {contact.name}</p>
-                  <p><span className="font-medium">Phone:</span> {contact.phone}</p>
-                  <p><span className="font-medium">Email:</span> {contact.email}</p>
-                </div>
-              ))}
-            </div>
-
-            <div className="border-t pt-4">
-              <h4 className="font-semibold mb-2">Performance Metrics</h4>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p className="text-gray-600">On-Time Delivery</p>
-                  <p className="font-semibold">{selectedSupplier.on_time_delivery}</p>
-                </div>
-                <div>
-                  <p className="text-gray-600">Conformity Rate</p>
-                  <p className="font-semibold">{selectedSupplier.conformity_rate}</p>
-                </div>
-                <div>
-                  <p className="text-gray-600">Avg Delivery Days</p>
-                  <p className="font-semibold">{selectedSupplier.avg_delivery_days} days</p>
-                </div>
-                <div>
-                  <p className="text-gray-600">Total Orders</p>
-                  <p className="font-semibold">{selectedSupplier.total_orders}</p>
-                </div>
+            {selectedSupplier.contacts && selectedSupplier.contacts.length > 0 && (
+              <div className="border-t pt-4">
+                <h4 className="font-semibold mb-2">Contact Information</h4>
+                {selectedSupplier.contacts.map((contact, idx) => (
+                  <div key={idx} className="text-sm space-y-1">
+                    <p><span className="font-medium">Name:</span> {contact.name}</p>
+                    <p><span className="font-medium">Phone:</span> {contact.phone}</p>
+                    <p><span className="font-medium">Email:</span> {contact.email}</p>
+                  </div>
+                ))}
               </div>
-            </div>
+            )}
           </div>
         )}
       </Modal>
@@ -308,7 +292,10 @@ export const Suppliers = () => {
       {/* Add Supplier Modal */}
       <Modal
         open={showAddForm}
-        onClose={() => setShowAddForm(false)}
+        onClose={() => {
+          setShowAddForm(false);
+          setFormError("");
+        }}
         title="Add Supplier"
         className="w-full max-w-md"
         footer={
@@ -316,18 +303,56 @@ export const Suppliers = () => {
             <Button variant="secondary" onClick={() => setShowAddForm(false)}>
               Cancel
             </Button>
-            <Button onClick={() => setShowAddForm(false)}>
-              Save
+            <Button onClick={handleAddSupplier} disabled={saving}>
+              {saving ? "Saving..." : "Save"}
             </Button>
           </>
         }
       >
         <div className="space-y-4">
-          <Input label="Supplier Name" placeholder="Supplier name" required />
-          <Input label="SIRET" placeholder="SIRET number" />
-          <Input label="Sector" placeholder="Business sector" />
-          <Input label="Email" type="email" placeholder="Contact email" />
-          <Input label="Phone" placeholder="Contact phone" />
+          {formError && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded text-sm">
+              {formError}
+            </div>
+          )}
+          <Input 
+            label="Supplier Name" 
+            placeholder="Supplier name" 
+            required 
+            value={newSupplier.name}
+            onChange={(e) => setNewSupplier(prev => ({ ...prev, name: e.target.value }))}
+          />
+          <Input 
+            label="SIRET" 
+            placeholder="SIRET number" 
+            value={newSupplier.siret}
+            onChange={(e) => setNewSupplier(prev => ({ ...prev, siret: e.target.value }))}
+          />
+          <Input 
+            label="Sector" 
+            placeholder="Business sector" 
+            value={newSupplier.sector}
+            onChange={(e) => setNewSupplier(prev => ({ ...prev, sector: e.target.value }))}
+          />
+          <Input 
+            label="Contact Name" 
+            placeholder="Contact person name" 
+            value={newSupplier.contact_name}
+            onChange={(e) => setNewSupplier(prev => ({ ...prev, contact_name: e.target.value }))}
+          />
+          <Input 
+            label="Email" 
+            type="email" 
+            placeholder="Contact email" 
+            value={newSupplier.email}
+            onChange={(e) => setNewSupplier(prev => ({ ...prev, email: e.target.value }))}
+          />
+          <Input 
+            label="Phone" 
+            placeholder="Contact phone" 
+            value={newSupplier.phone}
+            onChange={(e) => setNewSupplier(prev => ({ ...prev, phone: e.target.value }))}
+          />
         </div>
       </Modal>
     </div>

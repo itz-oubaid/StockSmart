@@ -1,0 +1,453 @@
+/* ============ Storekeeper Dashboard - Tailwind Aligned ============ */
+
+.storekeeper-dashboard {
+  @apply p-6 bg-slate-50 dark:bg-slate-900 min-h-screen;
+}
+
+.dashboard-header {
+  @apply mb-8 pb-6 border-b border-slate-200 dark:border-slate-800;
+}
+
+.dashboard-header h1 {
+  @apply text-3xl font-extrabold text-slate-900 dark:text-white m-0 mb-2;
+}
+
+.dashboard-header p {
+  @apply text-slate-500 dark:text-slate-400 m-0 text-sm;
+}
+
+/* ============ Stats Grid ============ */
+
+.stats-grid {
+  @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8;
+}
+
+.stat-card {
+  @apply bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all;
+  @apply flex flex-col items-center text-center;
+}
+
+.stat-icon {
+  @apply text-3xl mb-3;
+}
+
+.stat-icon.total {
+  @apply text-blue-500;
+}
+
+.stat-icon.stock {
+  @apply text-emerald-500;
+}
+
+.stat-icon.warning {
+  @apply text-amber-500;
+}
+
+.stat-icon.expiring {
+  @apply text-rose-500;
+}
+
+.stat-value {
+  @apply text-4xl font-extrabold text-slate-900 dark:text-white mb-2;
+}
+
+.stat-label {
+  @apply text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest;
+}
+
+/* ============ Tabs ============ */
+
+.tabs-container {
+  @apply flex gap-2 mb-6 border-b border-slate-200 dark:border-slate-700 overflow-x-auto;
+}
+
+.tab-button {
+  @apply px-4 py-3 font-semibold text-sm border-b-2 border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-300 transition-all cursor-pointer whitespace-nowrap;
+}
+
+.tab-button.active {
+  @apply border-blue-500 text-blue-600 dark:text-blue-400;
+}
+
+/* ============ Tab Content ============ */
+
+.tab-content {
+  @apply mb-6;
+}
+
+.content-section {
+  @apply bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm;
+}
+
+.section-header {
+  @apply flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6;
+}
+
+.section-header h2 {
+  @apply text-xl font-bold text-slate-900 dark:text-white m-0;
+}
+
+.section-actions {
+  @apply flex gap-2;
+}
+
+/* ============ Tables ============ */
+
+.products-table,
+.history-table {
+  @apply overflow-x-auto;
+}
+
+.table {
+  @apply w-full border-collapse text-sm;
+}
+
+.table thead {
+  @apply bg-slate-900 dark:bg-slate-950 text-white;
+}
+
+.table th {
+  @apply px-4 py-3 text-left font-semibold;
+}
+
+.table td {
+  @apply px-4 py-3 border-b border-slate-200 dark:border-slate-700;
+}
+
+.table tbody tr:hover {
+  @apply bg-slate-50 dark:bg-slate-800/50 transition-colors;
+}
+
+.quantity-badge {
+  @apply inline-block px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 font-semibold text-sm;
+}
+
+/* ============ Action Buttons ============ */
+
+.action-buttons {
+  @apply flex flex-wrap gap-2;
+}
+
+.btn-primary,
+.btn-secondary,
+.btn-tertiary,
+.btn-remove {
+  @apply px-4 py-2 rounded-lg font-semibold text-sm transition-all cursor-pointer;
+  @apply border-none flex items-center gap-2;
+}
+
+.btn-primary {
+  @apply bg-blue-600 text-white hover:bg-blue-700 shadow-sm hover:shadow-md;
+}
+
+.btn-secondary {
+  @apply bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white hover:bg-slate-300 dark:hover:bg-slate-600;
+}
+
+.btn-tertiary {
+  @apply bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-900/50;
+}
+
+.btn-remove {
+  @apply bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 hover:bg-rose-200 dark:hover:bg-rose-900/50;
+}
+
+.btn-sm {
+  @apply px-3 py-1.5 text-xs;
+}
+
+.btn-close {
+  @apply bg-none border-none text-2xl cursor-pointer text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors;
+}
+
+/* ============ Lots List ============ */
+
+.lots-list {
+  @apply space-y-3;
+}
+
+.lot-card {
+  @apply p-4 border border-slate-200 dark:border-slate-700 rounded-lg hover:shadow-md transition-all;
+}
+
+.lot-header {
+  @apply flex justify-between items-start mb-4 pb-4 border-b border-slate-200 dark:border-slate-700;
+}
+
+.lot-header h3 {
+  @apply font-semibold text-slate-900 dark:text-white m-0 mb-1;
+}
+
+.lot-number {
+  @apply text-xs text-slate-500 dark:text-slate-400 m-0;
+}
+
+.lot-actions {
+  @apply flex gap-2;
+}
+
+.lot-details {
+  @apply grid grid-cols-2 md:grid-cols-4 gap-4 text-sm;
+}
+
+.detail-item {
+  @apply flex flex-col;
+}
+
+.detail-item .label {
+  @apply text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase;
+}
+
+.detail-item .value {
+  @apply text-slate-900 dark:text-white font-semibold mt-1;
+}
+
+.detail-item .value.expiring {
+  @apply text-rose-600 dark:text-rose-400;
+}
+
+/* ============ Movements List ============ */
+
+.movements-list {
+  @apply space-y-3;
+}
+
+.movement-card {
+  @apply p-4 border border-slate-200 dark:border-slate-700 rounded-lg hover:shadow-md transition-all flex gap-4 items-start;
+}
+
+.movement-type {
+  @apply flex-shrink-0;
+}
+
+.movement-type .type-in {
+  @apply text-emerald-500 text-xl;
+}
+
+.movement-type .type-out {
+  @apply text-rose-500 text-xl;
+}
+
+.movement-info {
+  @apply flex-grow;
+}
+
+.movement-info h3 {
+  @apply font-semibold text-slate-900 dark:text-white m-0 mb-1;
+}
+
+.movement-info .reason {
+  @apply text-sm text-slate-600 dark:text-slate-400 m-0;
+}
+
+.movement-info .timestamp {
+  @apply text-xs text-slate-500 dark:text-slate-500 m-0 mt-1;
+}
+
+.movement-details {
+  @apply flex flex-col gap-2 items-end;
+}
+
+.movement-details .quantity {
+  @apply font-bold text-lg;
+}
+
+.movement-details .quantity.in {
+  @apply text-emerald-600 dark:text-emerald-400;
+}
+
+.movement-details .quantity.out {
+  @apply text-rose-600 dark:text-rose-400;
+}
+
+/* ============ Badges ============ */
+
+.badge {
+  @apply inline-block px-3 py-1 rounded-full text-xs font-semibold;
+}
+
+.badge-success {
+  @apply bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-200;
+}
+
+.badge-warning {
+  @apply bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200;
+}
+
+.badge-danger {
+  @apply bg-rose-100 dark:bg-rose-900/30 text-rose-800 dark:text-rose-200;
+}
+
+.badge-info {
+  @apply bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200;
+}
+
+/* ============ Empty State ============ */
+
+.empty-state {
+  @apply text-center py-12 text-slate-500 dark:text-slate-400;
+}
+
+.empty-state p {
+  @apply m-0 text-base;
+}
+
+/* ============ Alerts ============ */
+
+.alert {
+  @apply px-4 py-3 rounded-lg font-medium mb-6 text-sm;
+  @apply opacity-100 transition-opacity duration-300;
+  @apply border-l-4;
+}
+
+.alert-success {
+  @apply bg-emerald-50 dark:bg-emerald-900/20 text-emerald-900 dark:text-emerald-200 border-l-emerald-500;
+}
+
+.alert-danger {
+  @apply bg-rose-50 dark:bg-rose-900/20 text-rose-900 dark:text-rose-200 border-l-rose-500;
+}
+
+.alert-warning {
+  @apply bg-amber-50 dark:bg-amber-900/20 text-amber-900 dark:text-amber-200 border-l-amber-500;
+}
+
+/* ============ Modals ============ */
+
+.modal-overlay {
+  @apply fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50 p-4;
+}
+
+.modal-content {
+  @apply bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto;
+  @apply opacity-100 transition-opacity duration-200;
+}
+
+.modal-header {
+  @apply flex justify-between items-center p-6 border-b border-slate-200 dark:border-slate-700;
+}
+
+.modal-header h2 {
+  @apply text-lg font-bold text-slate-900 dark:text-white m-0;
+}
+
+.modal-body {
+  @apply p-6 space-y-4;
+}
+
+.modal-actions {
+  @apply flex gap-3 justify-end p-6 border-t border-slate-200 dark:border-slate-700;
+}
+
+.btn-confirm {
+  @apply px-4 py-2 bg-emerald-600 text-white rounded-lg font-semibold cursor-pointer transition-all hover:bg-emerald-700 shadow-sm hover:shadow-md;
+}
+
+.btn-cancel {
+  @apply px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white rounded-lg font-semibold cursor-pointer transition-all hover:bg-slate-300 dark:hover:bg-slate-600;
+}
+
+/* ============ Forms ============ */
+
+.form-group {
+  @apply mb-4;
+}
+
+.form-group label {
+  @apply block mb-2 text-slate-900 dark:text-white font-semibold text-sm;
+}
+
+.form-input,
+.form-textarea {
+  @apply w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm transition-all;
+  @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent;
+}
+
+.form-textarea {
+  @apply resize min-h-24;
+}
+
+.radio-group {
+  @apply space-y-2;
+}
+
+.radio-group label {
+  @apply flex items-center gap-2 font-normal mb-0 cursor-pointer;
+}
+
+.radio-group input {
+  @apply cursor-pointer;
+}
+
+.confirmation-message {
+  @apply space-y-4;
+}
+
+.confirmation-message p {
+  @apply text-slate-900 dark:text-white m-0;
+}
+
+.lot-preview {
+  @apply p-4 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700;
+}
+
+.lot-preview p {
+  @apply m-0 mb-2 text-sm text-slate-700 dark:text-slate-300;
+}
+
+.lot-preview p:last-child {
+  @apply mb-0;
+}
+
+/* ============ Responsive ============ */
+
+@media (max-width: 768px) {
+  .storekeeper-dashboard {
+    @apply p-4;
+  }
+
+  .dashboard-header h1 {
+    @apply text-2xl;
+  }
+
+  .stats-grid {
+    @apply grid-cols-2;
+  }
+
+  .table {
+    @apply text-xs;
+  }
+
+  .table th,
+  .table td {
+    @apply px-2 py-2;
+  }
+
+  .lot-details {
+    @apply grid-cols-2;
+  }
+
+  .modal-content {
+    @apply max-w-full;
+  }
+
+  .modal-actions {
+    @apply flex-col-reverse;
+  }
+
+  .modal-actions button {
+    @apply w-full;
+  }
+
+  .section-header {
+    @apply flex-col;
+  }
+
+  .section-actions {
+    @apply w-full;
+  }
+
+  .section-actions button {
+    @apply w-full;
+  }
+}

@@ -178,20 +178,7 @@ export const Settings = () => {
             <span>SMS Alerts</span>
           </label>
           <p className="preference-description">Get SMS notifications for critical inventory events</p>
-        </div>
-
-        <div className="form-group">
-          <label>Theme</label>
-          <select
-            value={preferences.theme}
-            onChange={(e) => handlePreferenceChange("theme", e.target.value)}
-            className="form-select"
-          >
-            <option value="light">Light</option>
-            <option value="dark">Dark</option>
-            <option value="auto">Auto</option>
-          </select>
-        </div>
+        </div> 
 
         <div className="form-group">
           <label>Language</label>
